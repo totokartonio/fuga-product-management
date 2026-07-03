@@ -1,0 +1,38 @@
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-secondary);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+
+  .filled {
+    transition:
+      background 0.15s,
+      color 0.15s;
+  }
+
+  &.md {
+    padding: var(--spacing-sm);
+  }
+
+  &.sm {
+    padding: var(--spacing-xs);
+  }
+}
+
+.iconButton:hover {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+.danger:hover {
+  color: var(--color-danger);
+  border: 1px solid color-mix(in oklch, var(--color-danger) 30%, transparent);
+  background: var(--color-danger-surface);
+}
