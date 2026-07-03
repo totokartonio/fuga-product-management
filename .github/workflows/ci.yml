@@ -1,0 +1,242 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC nightly
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_SERVER: ghcr.io/${{ github.repository }}-server
+  IMAGE_CLIENT: ghcr.io/${{ github.repository }}-client
+  NODE_VERSION: "22"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────
+  # Stage 1+2 — validate (runs on PR and on push; skipped on schedule)
+  # ────────────────────────────────────────────────────────────────
+  client:
+    name: Client · lint + test
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @fuga/client lint
+      - run: pnpm --filter @fuga/client test
+
+  server:
+    name: Server · compile + integration tests
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fuga
+          POSTGRES_PASSWORD: fuga
+          POSTGRES_DB: fuga
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U fuga"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # env.ts requires all of these (it process.exit(1)s on a bad parse). Tests
+      # never actually connect to Redis/MinIO, so dummy values that satisfy the
+      # zod schema are enough — no containers needed. DATABASE_URL matches what
+      # pretest migrates and .env.test loads.
+      DATABASE_URL: postgresql://fuga:fuga@localhost:5432/fuga_test
+      REDIS_URL: redis://localhost:6379
+      MINIO_ENDPOINT: localhost
+      MINIO_PORT: "9000"
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: covers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Compile (tsc)
+        run: pnpm --filter @fuga/server build
+      - name: Integration tests
+        run: pnpm --filter @fuga/server test
+
+  codeql:
+    name: CodeQL · JS/TS
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
+
+  # ────────────────────────────────────────────────────────────────
+  # Stage 3 — build & push images (push to main only)
+  # ────────────────────────────────────────────────────────────────
+  build:
+    name: Build & push images
+    if: github.event_name == 'push'
+    needs: [client, server, codeql]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_SERVER }}:${{ github.sha }}
+            ${{ env.IMAGE_SERVER }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Client image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/client/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_CLIENT }}:${{ github.sha }}
+            ${{ env.IMAGE_CLIENT }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ────────────────────────────────────────────────────────────────
+  # Stage 4 — security scan (push to main only).
+  # ────────────────────────────────────────────────────────────────
+  scan:
+    name: Scan images & deps
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trivy · server image
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE_SERVER }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Trivy · client image
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE_CLIENT }}:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Snyk · dependencies
+        continue-on-error: true
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+
+  # ────────────────────────────────────────────────────────────────
+  # Stage 5 — deploy to Railway (push to main only, gated on scan)
+  # ────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Railway (GHCR image)
+    if: github.event_name == 'push'
+    needs: scan
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} # project token
+    steps:
+      - name: Redeploy server
+        run: railway redeploy --service ${{ secrets.RAILWAY_SERVICE_SERVER }} --yes
+      - name: Redeploy client
+        run: railway redeploy --service ${{ secrets.RAILWAY_SERVICE_CLIENT }} --yes
+
+  # ────────────────────────────────────────────────────────────────
+  # Nightly — rescan the shipped images + code (schedule only)
+  # ────────────────────────────────────────────────────────────────
+  nightly-rescan:
+    name: Nightly rescan
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trivy · server (latest)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE_SERVER }}:latest
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: Trivy · client (latest)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.IMAGE_CLIENT }}:latest
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+      - name: Snyk · dependencies
+        continue-on-error: true
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: test
+          args: --all-projects --severity-threshold=high
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
