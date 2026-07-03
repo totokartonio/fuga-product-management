@@ -179,29 +179,28 @@ jobs:
   # Stage 5 — deploy to Railway (push to main only, gated on scan)
   # ────────────────────────────────────────────────────────────────
   deploy:
-  name: Deploy to Railway (GHCR image)
-  if: github.event_name == 'push'
-  needs: scan
-  runs-on: ubuntu-latest
-  environment: production
-  container: ghcr.io/railwayapp/cli:latest
-  env:
-    RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-    RAILWAY_SERVICE_SERVER: ${{ secrets.RAILWAY_SERVICE_SERVER }}
-    RAILWAY_SERVICE_CLIENT: ${{ secrets.RAILWAY_SERVICE_CLIENT }}
-  steps:
-    - name: Check Railway secrets
-      run: |
-        test -n "$RAILWAY_TOKEN" || { echo "Missing RAILWAY_TOKEN"; exit 1; }
-        test -n "$RAILWAY_SERVICE_SERVER" || { echo "Missing RAILWAY_SERVICE_SERVER"; exit 1; }
-        test -n "$RAILWAY_SERVICE_CLIENT" || { echo "Missing RAILWAY_SERVICE_CLIENT"; exit 1; }
+    name: Deploy to Railway (GHCR image)
+    if: github.event_name == 'push'
+    needs: scan
+    runs-on: ubuntu-latest
+    environment: production
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE_SERVER: ${{ secrets.RAILWAY_SERVICE_SERVER }}
+      RAILWAY_SERVICE_CLIENT: ${{ secrets.RAILWAY_SERVICE_CLIENT }}
+    steps:
+      - name: Check Railway secrets
+        run: |
+          test -n "$RAILWAY_TOKEN" || { echo "Missing RAILWAY_TOKEN"; exit 1; }
+          test -n "$RAILWAY_SERVICE_SERVER" || { echo "Missing RAILWAY_SERVICE_SERVER"; exit 1; }
+          test -n "$RAILWAY_SERVICE_CLIENT" || { echo "Missing RAILWAY_SERVICE_CLIENT"; exit 1; }
 
-    - name: Redeploy server
-      run: railway redeploy --service "$RAILWAY_SERVICE_SERVER" --yes
+      - name: Redeploy server
+        run: railway redeploy --service "$RAILWAY_SERVICE_SERVER" --yes
 
-    - name: Redeploy client
-      run: railway redeploy --service "$RAILWAY_SERVICE_CLIENT" --yes
-
+      - name: Redeploy client
+        run: railway redeploy --service "$RAILWAY_SERVICE_CLIENT" --yes
   # ────────────────────────────────────────────────────────────────
   # Nightly — rescan the shipped images + code (schedule only)
   # ────────────────────────────────────────────────────────────────
