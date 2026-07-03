@@ -29,4 +29,4 @@ ENV NODE_ENV=production
 COPY --from=build /app ./
 
 WORKDIR /app/apps/server
-CMD ["sh", "-c", "npx prisma db push --url \"$DATABASE_URL\" && npx tsx src/server.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/server.ts"]

@@ -48,10 +48,9 @@ const ArtistSelect = ({
     return () => document.removeEventListener("mousedown", onDown);
   }, [isOpen]);
 
-  useEffect(() => setHighlighted(0), [debouncedQuery, isOpen]);
-
   const open = () => {
     setQuery("");
+    setHighlighted(0);
     setIsOpen(true);
   };
 
@@ -106,6 +105,7 @@ const ArtistSelect = ({
           onFocus={open}
           onChange={(e) => {
             setQuery(e.target.value);
+            setHighlighted(0);
             setIsOpen(true);
           }}
           onKeyDown={handleKeyDown}

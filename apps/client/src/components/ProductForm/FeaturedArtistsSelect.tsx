@@ -10,7 +10,7 @@ type Props = {
   excludeIds?: string[];
 };
 
-const FeaturedArtistsSelect = ({ value, onChange, excludeIds }: Props) => {
+const FeaturedArtistsSelect = ({ value, onChange, excludeIds = [] }: Props) => {
   return (
     <div>
       <ArtistSelect
