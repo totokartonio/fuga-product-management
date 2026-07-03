@@ -32,3 +32,9 @@ export const throwApiError = async (res: Response): Promise<never> => {
     err?.fields ?? {},
   );
 };
+
+export const fieldErrorsOf = (error: unknown) =>
+  error instanceof ApiError ? error.fields : undefined;
+
+export const messageOf = (error: unknown, fallback: string) =>
+  error instanceof ApiError ? error.message : fallback;

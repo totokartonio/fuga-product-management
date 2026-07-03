@@ -20,6 +20,7 @@ type Props = {
   excludeIds?: string[];
   placeholder?: string;
   disabled?: boolean;
+  id: string;
 };
 
 const ArtistSelect = ({
@@ -29,6 +30,7 @@ const ArtistSelect = ({
   excludeIds = [],
   placeholder = "Search artists…",
   disabled = false,
+  id,
 }: Props) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -176,6 +178,7 @@ const ArtistSelect = ({
       placeholder={placeholder}
       disabled={disabled}
       ariaLabel="Search artists"
+      id={id}
     />
   );
 };
