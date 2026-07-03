@@ -9,9 +9,15 @@ type Props = {
   onFileSelect: (file: File | null) => void;
   initialUrl?: string | null;
   onRemove?: () => void;
+  id: string;
 };
 
-const CoverPicker = ({ onFileSelect, initialUrl = null, onRemove }: Props) => {
+const CoverPicker = ({
+  onFileSelect,
+  initialUrl = null,
+  onRemove,
+  id,
+}: Props) => {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +83,7 @@ const CoverPicker = ({ onFileSelect, initialUrl = null, onRemove }: Props) => {
         onChange={handleChange}
         ref={inputRef}
         className={styles.hiddenInput}
+        id={id}
       />
 
       {displayUrl ? (

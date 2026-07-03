@@ -11,3 +11,8 @@
   cursor: pointer;
   padding: 0;
 }
+
+.submitError {
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}

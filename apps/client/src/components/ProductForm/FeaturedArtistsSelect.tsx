@@ -7,6 +7,7 @@ type Props = {
   onAddNew: (name: string) => void;
   excludeIds?: string[];
   disabled?: boolean;
+  id: string;
 };
 
 const FeaturedArtistsSelect = (props: Props) => (

@@ -1,7 +1,9 @@
 import { useState, type SubmitEventHandler } from "react";
 import { createArtistSchema, fieldErrorsFromZod } from "@fuga/shared";
-import field from "../ui/formField.module.css";
 import styles from "./ArtistForm.module.css";
+import { Fieldset } from "../ui/Fieldset/Fieldset";
+import { Field } from "../ui/Field/Field";
+import { Input } from "../ui/Input/Input";
 
 type Props = {
   onSubmit: (artistName: string) => void;
@@ -34,22 +36,21 @@ const ArtistForm = ({
   };
   return (
     <form onSubmit={handleSubmit} className={styles.form} id={formId}>
-      <fieldset disabled={isSubmitting} className={field.fieldset}>
-        <div className={field.field}>
-          <label className={field.label} htmlFor="artist-name">
-            Artist name
-          </label>
-          <input
+      <Fieldset disabled={isSubmitting}>
+        <Field
+          label="Artist name"
+          htmlFor="artist-name"
+          error={fieldErrors.name ?? null}
+        >
+          <Input
             placeholder="Pixies"
             value={artistName}
             onChange={(e) => setArtistName(e.target.value)}
             id="artist-name"
-            className={field.input}
           />
-        </div>
-        {fieldErrors.name && <p className={field.error}>{fieldErrors.name}</p>}
-        {submitError && <p className={field.error}>{submitError}</p>}
-      </fieldset>
+        </Field>
+        {submitError && <p className={styles.submitError}>{submitError}</p>}
+      </Fieldset>
     </form>
   );
 };

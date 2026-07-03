@@ -9,7 +9,9 @@ import { CoverPicker } from "./CoverPicker/CoverPicker";
 import { MainArtistSelect } from "./MainArtistSelect";
 import { FeaturedArtistsSelect } from "./FeaturedArtistsSelect";
 import styles from "./ProductForm.module.css";
-import field from "../ui/formField.module.css";
+import { Fieldset } from "../ui/Fieldset/Fieldset";
+import { Field } from "../ui/Field/Field";
+import { Input } from "../ui/Input/Input";
 
 type BaseProps = {
   onSubmit: (data: FormData) => void;
@@ -92,10 +94,10 @@ const ProductForm = ({
 
   return (
     <form id={formId} onSubmit={handleSubmit} className={styles.form}>
-      <fieldset disabled={isSubmitting} className={field.fieldset}>
-        <div className={field.field}>
-          <span className={field.label}>Cover art</span>
+      <Fieldset disabled={isSubmitting}>
+        <Field label="Cover art" htmlFor="cover-picker">
           <CoverPicker
+            id="cover-picker"
             onFileSelect={(file) => {
               setCoverFile(file);
               if (file) setRemoveCover(false);
@@ -103,52 +105,51 @@ const ProductForm = ({
             initialUrl={initialValues?.coverArtUrl}
             onRemove={() => setRemoveCover(true)}
           />
-        </div>
+        </Field>
 
-        <div className={field.field}>
-          <label className={field.label} htmlFor="product-name">
-            Release name
-          </label>
-          <input
+        <Field
+          label="Release name"
+          htmlFor="product-name"
+          error={errors.name ?? null}
+        >
+          <Input
             id="product-name"
-            className={field.input}
             placeholder="Doolittle"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          {errors.name && <p className={field.error}>{errors.name}</p>}
-        </div>
+        </Field>
 
-        <div className={field.field}>
-          <div className={field.labelRow}>
-            <label className={field.label}>Main artist</label>
-          </div>
+        <Field
+          label="Main artist"
+          htmlFor="main-artist"
+          error={errors.mainArtistId ?? null}
+        >
           <MainArtistSelect
             value={mainArtist}
             onChange={setMainArtist}
             excludeIds={featuredArtists.map((a) => a.id)}
             onAddNew={onCreateArtist}
+            id="main-artist"
           />
-          {errors.mainArtistId && (
-            <p className={field.error}>{errors.mainArtistId}</p>
-          )}
-        </div>
+        </Field>
 
-        <div className={field.field}>
-          <label className={field.label}>Featured artists</label>
+        <Field
+          label="Featured artists"
+          htmlFor="featured-artists"
+          error={errors.featuredArtistIds ?? null}
+        >
           <FeaturedArtistsSelect
             value={featuredArtists}
             onChange={setFeaturedArtists}
             excludeIds={mainArtist ? [mainArtist.id] : []}
             onAddNew={onCreateArtist}
+            id="featured-artists"
           />
-          {errors.featuredArtistIds && (
-            <p className={field.error}>{errors.featuredArtistIds}</p>
-          )}
-        </div>
+        </Field>
 
-        {submitError && <p className={field.error}>{submitError}</p>}
-      </fieldset>
+        {submitError && <p className={styles.submitError}>{submitError}</p>}
+      </Fieldset>
     </form>
   );
 };

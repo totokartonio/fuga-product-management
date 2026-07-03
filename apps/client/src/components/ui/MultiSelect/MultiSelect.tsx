@@ -36,6 +36,8 @@ type Props = {
   placeholder?: string;
   disabled?: boolean;
   ariaLabel?: string;
+
+  id: string;
 };
 
 const MultiSelect = ({
@@ -51,6 +53,7 @@ const MultiSelect = ({
   placeholder = "Search…",
   disabled = false,
   ariaLabel = "Select options",
+  id,
 }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -153,6 +156,7 @@ const MultiSelect = ({
             onOpenChange(true);
           }}
           onKeyDown={handleKeyDown}
+          id={id}
         />
       </div>
 

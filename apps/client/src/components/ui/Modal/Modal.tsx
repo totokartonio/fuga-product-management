@@ -45,10 +45,10 @@ const Modal = ({
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
           <div className={styles.headerActions}>
-            {headerActions}
             <Button type="button" variant="ghost" onClick={onClose}>
               {closeLabel}
             </Button>
+            {headerActions}
           </div>
         </div>
         <div className={styles.body}>{children}</div>
