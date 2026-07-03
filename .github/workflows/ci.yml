@@ -56,10 +56,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      # env.ts requires all of these (it process.exit(1)s on a bad parse). Tests
-      # never actually connect to Redis/MinIO, so dummy values that satisfy the
-      # zod schema are enough — no containers needed. DATABASE_URL matches what
-      # pretest migrates and .env.test loads.
       DATABASE_URL: postgresql://fuga:fuga@localhost:5432/fuga_test
       REDIS_URL: redis://localhost:6379
       MINIO_ENDPOINT: localhost
@@ -77,8 +73,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Compile (tsc)
-        run: pnpm --filter @fuga/server build
+      - name: Typecheck (no emit)
+        run: pnpm --filter @fuga/server exec tsc --noEmit
       - name: Integration tests
         run: pnpm --filter @fuga/server test
 
@@ -157,14 +153,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Trivy · server image
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_SERVER }}:${{ github.sha }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
       - name: Trivy · client image
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_CLIENT }}:${{ github.sha }}
           severity: CRITICAL,HIGH
@@ -187,7 +183,7 @@ jobs:
     if: github.event_name == 'push'
     needs: scan
     runs-on: ubuntu-latest
-    environment: production
+    environment: production # secrets/vars come from this GitHub Environment
     container: ghcr.io/railwayapp/cli:latest
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} # project token
@@ -216,14 +212,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Trivy · server (latest)
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_SERVER }}:latest
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "0"
       - name: Trivy · client (latest)
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE_CLIENT }}:latest
           severity: CRITICAL,HIGH
