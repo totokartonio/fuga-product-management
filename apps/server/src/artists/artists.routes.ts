@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { listArtists, createArtist } from "./artists.repository";
+import {
+  listArtists,
+  createArtist,
+  ArtistAlreadyExistsError,
+} from "./artists.repository";
 import { createArtistSchema, fieldErrorsFromZod } from "@fuga/shared";
 
 export const artistsRouter = Router();
@@ -22,6 +26,23 @@ artistsRouter.post("/", async (req, res) => {
     });
     return;
   }
-  const artist = await createArtist(parsed.data);
-  res.status(201).json(artist);
+  try {
+    const artist = await createArtist(parsed.data);
+    res.status(201).json(artist);
+  } catch (err) {
+    if (err instanceof ArtistAlreadyExistsError) {
+      res.status(409).json({
+        error: {
+          code: "ARTIST_ALREADY_EXISTS",
+          message: "This artist already exists",
+          fields: {
+            name: "This artist already exists",
+          },
+        },
+      });
+      return;
+    }
+
+    throw err;
+  }
 });

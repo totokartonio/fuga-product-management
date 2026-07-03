@@ -1,15 +1,22 @@
-import { useState, useEffect, useRef, type KeyboardEventHandler } from "react";
+import { useState, type KeyboardEventHandler } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 import { getArtists } from "../../../api/artists";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 import type { ArtistResponse } from "@fuga/shared";
-import { IconButton } from "../../ui/IconButton/IconButton";
-import { X } from "lucide-react";
+import {
+  MultiSelect,
+  type MultiSelectListbox,
+} from "../../ui/MultiSelect/MultiSelect";
 import styles from "./ArtistSelect.module.css";
 
+const ADD_NEW_INDEX = 0;
+const ADD_NEW_OPTION_ID = "add-new-artist";
+
 type Props = {
-  value: ArtistResponse | null;
-  onChange: (artist: ArtistResponse | null) => void;
+  value: ArtistResponse[];
+  onChange: (artists: ArtistResponse[]) => void;
+  onAddNew: (name: string) => void;
   excludeIds?: string[];
   placeholder?: string;
   disabled?: boolean;
@@ -18,136 +25,158 @@ type Props = {
 const ArtistSelect = ({
   value,
   onChange,
+  onAddNew,
   excludeIds = [],
   placeholder = "Search artists…",
   disabled = false,
 }: Props) => {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [highlighted, setHighlighted] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [highlighted, setHighlighted] = useState(ADD_NEW_INDEX);
 
   const debouncedQuery = useDebouncedValue(query, 250);
 
   const { data: artists = [], isFetching } = useQuery({
     queryKey: ["artists", debouncedQuery],
     queryFn: () => getArtists(debouncedQuery || undefined),
-    enabled: isOpen,
+    enabled: isOpen && !disabled,
     placeholderData: keepPreviousData,
   });
 
-  const options = artists.filter((a) => !excludeIds.includes(a.id));
+  const hiddenIds = new Set([...value.map((a) => a.id), ...excludeIds]);
+  const options = artists.filter((artist) => !hiddenIds.has(artist.id));
 
-  // close on outside click
-  useEffect(() => {
-    if (!isOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setIsOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [isOpen]);
+  // item 0 is always the "Add new artist" row; artists start at index 1
+  const itemCount = options.length + 1;
 
-  const open = () => {
+  const highlightedIndex = Math.min(highlighted, itemCount - 1);
+
+  const activeOptionId =
+    highlightedIndex === ADD_NEW_INDEX
+      ? ADD_NEW_OPTION_ID
+      : options[highlightedIndex - 1]?.id;
+
+  const selectArtist = (artist: ArtistResponse) => {
+    onChange([...value, { id: artist.id, name: artist.name }]);
     setQuery("");
-    setHighlighted(0);
-    setIsOpen(true);
+    setHighlighted(1);
   };
 
-  const select = (artist: ArtistResponse) => {
-    onChange({ id: artist.id, name: artist.name });
+  const handleAddNew = () => {
+    onAddNew(query.trim());
+    setQuery("");
     setIsOpen(false);
-    setQuery("");
   };
 
-  const handleKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (!isOpen && (e.key === "ArrowDown" || e.key === "Enter")) {
-      open();
-      return;
-    }
+  const handleOpenChange = (next: boolean) => {
+    setIsOpen(next);
+    if (next) setHighlighted(options.length > 0 ? 1 : ADD_NEW_INDEX);
+  };
+
+  const handleQueryChange = (next: string) => {
+    setQuery(next);
+    setHighlighted(1); // optimistic: first match — clamps back to 0 if none arrive
+  };
+
+  const handleInputKeyDown: KeyboardEventHandler<HTMLInputElement> = (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setHighlighted((i) => Math.min(i + 1, options.length - 1));
+      if (!isOpen) {
+        handleOpenChange(true);
+        return;
+      }
+      setHighlighted(Math.min(highlightedIndex + 1, itemCount - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlighted((i) => Math.max(i - 1, 0));
+      setHighlighted(Math.max(highlightedIndex - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const choice = options[highlighted];
-      if (choice) select(choice);
+      if (!isOpen) {
+        handleOpenChange(true);
+        return;
+      }
+      if (highlightedIndex === ADD_NEW_INDEX) {
+        handleAddNew();
+      } else {
+        const artist = options[highlightedIndex - 1];
+        if (artist) selectArtist(artist);
+      }
     } else if (e.key === "Escape") {
       setIsOpen(false);
     }
   };
 
-  const displayValue = isOpen ? query : (value?.name ?? "");
+  const renderListbox = ({ listboxId, getOptionDomId }: MultiSelectListbox) => (
+    <ul
+      id={listboxId}
+      role="listbox"
+      aria-multiselectable="true"
+      className={styles.listbox}
+    >
+      <li
+        id={getOptionDomId(ADD_NEW_OPTION_ID)}
+        role="option"
+        aria-selected="false"
+        className={`${styles.option} ${styles.addNew} ${
+          highlightedIndex === ADD_NEW_INDEX ? styles.highlighted : ""
+        }`}
+        onMouseEnter={() => setHighlighted(ADD_NEW_INDEX)}
+        onMouseDown={(e) => {
+          e.preventDefault(); // beat the input blur
+          handleAddNew();
+        }}
+      >
+        <Plus size={16} />
+        {query.trim() ? `Add new artist “${query.trim()}”` : "Add new artist"}
+      </li>
+
+      {options.length === 0 ? (
+        <li className={styles.empty}>
+          {isFetching ? "Searching…" : "No artists found"}
+        </li>
+      ) : (
+        options.map((artist, index) => {
+          const itemIndex = index + 1;
+          return (
+            <li
+              key={artist.id}
+              id={getOptionDomId(artist.id)}
+              role="option"
+              aria-selected="false"
+              className={`${styles.option} ${
+                itemIndex === highlightedIndex ? styles.highlighted : ""
+              }`}
+              onMouseEnter={() => setHighlighted(itemIndex)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectArtist(artist);
+              }}
+            >
+              {artist.name}
+            </li>
+          );
+        })
+      )}
+    </ul>
+  );
 
   return (
-    <div
-      ref={containerRef}
-      className={styles.container}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          setIsOpen(false);
-        }
-      }}
-    >
-      <div className={styles.inputWrap}>
-        <input
-          type="text"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-controls="artist-listbox"
-          placeholder={placeholder}
-          className={styles.input}
-          value={displayValue}
-          disabled={disabled}
-          onFocus={open}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setHighlighted(0);
-            setIsOpen(true);
-          }}
-          onKeyDown={handleKeyDown}
-        />
-        {value && !isOpen && (
-          <IconButton
-            type="button"
-            aria-label="Clear artist"
-            className={styles.clearButton}
-            onClick={() => onChange(null)}
-          >
-            <X size={16} />
-          </IconButton>
-        )}
-      </div>
-
-      {isOpen && (
-        <ul id="artist-listbox" role="listbox" className={styles.listbox}>
-          {options.length === 0 ? (
-            <li className={styles.empty}>
-              {isFetching ? "Searching…" : "No artists found"}
-            </li>
-          ) : (
-            options.map((a, i) => (
-              <li
-                key={a.id}
-                role="option"
-                aria-selected={a.id === value?.id}
-                onMouseDown={(e) => {
-                  e.preventDefault(); // beat the input blur
-                  select(a);
-                }}
-                onMouseEnter={() => setHighlighted(i)}
-                className={`${styles.option} ${i === highlighted ? styles.highlighted : ""}`}
-              >
-                {a.name}
-              </li>
-            ))
-          )}
-        </ul>
-      )}
-    </div>
+    <MultiSelect
+      value={value.map((artist) => ({ id: artist.id, label: artist.name }))}
+      onChange={(chips) =>
+        onChange(chips.map((chip) => ({ id: chip.id, name: chip.label })))
+      }
+      inputValue={query}
+      onInputValueChange={handleQueryChange}
+      isOpen={isOpen}
+      onOpenChange={handleOpenChange}
+      renderListbox={renderListbox}
+      activeOptionId={activeOptionId}
+      onInputKeyDown={handleInputKeyDown}
+      placeholder={placeholder}
+      disabled={disabled}
+      ariaLabel="Search artists"
+    />
   );
 };
 

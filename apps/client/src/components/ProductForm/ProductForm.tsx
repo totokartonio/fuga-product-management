@@ -8,7 +8,6 @@ import {
 import { CoverPicker } from "./CoverPicker/CoverPicker";
 import { MainArtistSelect } from "./MainArtistSelect";
 import { FeaturedArtistsSelect } from "./FeaturedArtistsSelect";
-import { Button } from "../ui/Button/Button";
 import styles from "./ProductForm.module.css";
 import field from "../ui/formField.module.css";
 
@@ -18,6 +17,7 @@ type BaseProps = {
   serverFieldErrors?: Record<string, string>;
   isSubmitting?: boolean;
   submitError?: string | null;
+  formId?: string;
 };
 
 type Props =
@@ -35,6 +35,7 @@ const ProductForm = ({
   onCreateArtist,
   mode,
   serverFieldErrors,
+  formId,
   isSubmitting = false,
   submitError = null,
   initialValues,
@@ -90,7 +91,7 @@ const ProductForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className={styles.form}>
+    <form id={formId} onSubmit={handleSubmit} className={styles.form}>
       <fieldset disabled={isSubmitting} className={field.fieldset}>
         <div className={field.field}>
           <span className={field.label}>Cover art</span>
@@ -121,18 +122,12 @@ const ProductForm = ({
         <div className={field.field}>
           <div className={field.labelRow}>
             <label className={field.label}>Main artist</label>
-            <button
-              type="button"
-              className={styles.linkButton}
-              onClick={onCreateArtist}
-            >
-              + New artist
-            </button>
           </div>
           <MainArtistSelect
             value={mainArtist}
             onChange={setMainArtist}
             excludeIds={featuredArtists.map((a) => a.id)}
+            onAddNew={onCreateArtist}
           />
           {errors.mainArtistId && (
             <p className={field.error}>{errors.mainArtistId}</p>
@@ -145,6 +140,7 @@ const ProductForm = ({
             value={featuredArtists}
             onChange={setFeaturedArtists}
             excludeIds={mainArtist ? [mainArtist.id] : []}
+            onAddNew={onCreateArtist}
           />
           {errors.featuredArtistIds && (
             <p className={field.error}>{errors.featuredArtistIds}</p>
@@ -152,16 +148,6 @@ const ProductForm = ({
         </div>
 
         {submitError && <p className={field.error}>{submitError}</p>}
-
-        <div className={styles.actions}>
-          <Button type="submit" variant="primary" disabled={isSubmitting}>
-            {isSubmitting
-              ? "Saving…"
-              : mode === "edit"
-                ? "Save changes"
-                : "Create product"}
-          </Button>
-        </div>
       </fieldset>
     </form>
   );

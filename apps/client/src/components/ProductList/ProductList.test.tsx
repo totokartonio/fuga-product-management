@@ -47,6 +47,6 @@ describe("ProductList", () => {
       />,
     );
 
-    expect(screen.getByText(/no releases yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no products yet/i)).toBeInTheDocument();
   });
 });

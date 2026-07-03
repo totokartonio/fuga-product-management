@@ -14,6 +14,7 @@ import type { ProductResponse } from "@fuga/shared";
 import { ApiError } from "./api/apiError";
 import { Modal } from "./components/ui/Modal/Modal";
 import { DeleteModal } from "./components/DeleteModal/DeleteModal";
+import { Button } from "./components/ui/Button/Button";
 
 type ProductModalState =
   | { mode: "create" }
@@ -75,11 +76,22 @@ const App = () => {
   const fieldErrorsOf = (error: unknown) =>
     error instanceof ApiError ? error.fields : undefined;
 
+  const messageOf = (error: unknown, fallback: string) =>
+    error instanceof ApiError ? error.message : fallback;
+
   const createFailedGenerally =
     productMutation.isError && !fieldErrorsOf(productMutation.error);
 
   const updateFailedGenerally =
     updateMutation.isError && !fieldErrorsOf(updateMutation.error);
+
+  const closeArtistForm = () => {
+    artistMutation.reset();
+    setIsArtistFormOpen(false);
+  };
+
+  const productFormId = "product-form";
+  const artistFormId = "artist-form";
 
   return (
     <>
@@ -95,13 +107,23 @@ const App = () => {
       />
 
       <Modal
-        isOpen={productModal?.mode === "create"}
+        isOpen={productModal !== null}
         onClose={() => setProductModal(null)}
         title="Add product"
+        headerActions={
+          <Button
+            type="submit"
+            form={productFormId}
+            disabled={productMutation.isPending}
+            variant="primary"
+          >
+            {productMutation.isPending ? "Saving…" : "Save"}
+          </Button>
+        }
       >
         {productModal?.mode === "create" && (
           <ProductForm
-            key="create-product"
+            formId={productFormId}
             mode="create"
             onSubmit={(formData) => productMutation.mutate(formData)}
             onCreateArtist={() => setIsArtistFormOpen(true)}
@@ -112,16 +134,9 @@ const App = () => {
             }
           />
         )}
-      </Modal>
-
-      <Modal
-        isOpen={productModal?.mode === "edit"}
-        onClose={() => setProductModal(null)}
-        title="Edit product"
-      >
         {productModal?.mode === "edit" && (
           <ProductForm
-            key={productModal.product.id}
+            formId={productFormId}
             mode="edit"
             initialValues={productModal.product}
             onSubmit={(data) =>
@@ -142,14 +157,27 @@ const App = () => {
 
       <Modal
         isOpen={isArtistFormOpen}
-        onClose={() => setIsArtistFormOpen(false)}
+        onClose={closeArtistForm}
         title="Add artist"
+        headerActions={
+          <Button
+            type="submit"
+            variant="primary"
+            form={artistFormId}
+            disabled={artistMutation.isPending}
+          >
+            {artistMutation.isPending ? "Creating…" : "Create"}
+          </Button>
+        }
       >
         <ArtistForm
           onSubmit={(name) => artistMutation.mutate({ name })}
+          formId={artistFormId}
           isSubmitting={artistMutation.isPending}
           submitError={
-            artistMutation.isError ? "Failed to create artist" : null
+            artistMutation.isError
+              ? messageOf(artistMutation.error, "Failed to create artist")
+              : null
           }
         />
       </Modal>

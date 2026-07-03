@@ -35,4 +35,17 @@ describe("GET /api/artists", () => {
       "Radiohead",
     ]);
   });
+
+  it("returns 409 when artist already exists", async () => {
+    await prisma.artist.create({ data: { name: "The Cure" } });
+
+    const res = await request(app)
+      .post("/api/artists")
+      .send({ name: "The Cure" });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("ARTIST_ALREADY_EXISTS");
+    expect(res.body.error.message).toBe("This artist already exists");
+    expect(res.body.error.fields.name).toBe("This artist already exists");
+  });
 });

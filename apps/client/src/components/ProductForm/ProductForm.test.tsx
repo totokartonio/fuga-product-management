@@ -4,12 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ProductForm } from "./ProductForm";
 
+const FORM_ID = "product-form";
+
 const renderWithClient = (ui: React.ReactElement) => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
-    <QueryClientProvider client={client}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={client}>
+      {ui}
+      <button type="submit" form={FORM_ID}>
+        Save
+      </button>
+    </QueryClientProvider>,
   );
 };
 
@@ -22,6 +29,7 @@ describe("ProductForm", () => {
 
     renderWithClient(
       <ProductForm
+        formId={FORM_ID}
         mode="edit"
         onSubmit={onSubmit}
         onCreateArtist={noop}
@@ -38,10 +46,14 @@ describe("ProductForm", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /save changes/i }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
 
     expect(onSubmit).toHaveBeenCalledOnce();
-    expect(onSubmit.mock.calls[0][0]).toBeInstanceOf(FormData);
+
+    const formData = onSubmit.mock.calls[0][0] as FormData;
+    expect(formData).toBeInstanceOf(FormData);
+    expect(formData.get("name")).toBe("Revolver");
+    expect(formData.get("mainArtistId")).toBe("a1");
   });
 
   it("blocks submit when required fields are empty", async () => {
@@ -49,10 +61,15 @@ describe("ProductForm", () => {
     const user = userEvent.setup();
 
     renderWithClient(
-      <ProductForm mode="create" onSubmit={onSubmit} onCreateArtist={noop} />,
+      <ProductForm
+        formId={FORM_ID}
+        mode="create"
+        onSubmit={onSubmit}
+        onCreateArtist={noop}
+      />,
     );
 
-    await user.click(screen.getByRole("button", { name: /create product/i }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();
   });

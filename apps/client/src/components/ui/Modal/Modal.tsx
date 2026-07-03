@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import styles from "./Modal.module.css";
-import { X } from "lucide-react";
-import { IconButton } from "../IconButton/IconButton";
+import { Button } from "../Button/Button";
 
 type Props = {
   isOpen: boolean;
@@ -9,6 +8,8 @@ type Props = {
   title: string;
   children: React.ReactNode;
   variant?: "fullscreen" | "centered";
+  headerActions?: React.ReactNode;
+  closeLabel?: string;
 };
 
 const Modal = ({
@@ -17,6 +18,8 @@ const Modal = ({
   title,
   children,
   variant = "fullscreen",
+  headerActions,
+  closeLabel = "Close",
 }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -26,6 +29,8 @@ const Modal = ({
     if (isOpen && !dialog.open) dialog.showModal();
     if (!isOpen && dialog.open) dialog.close();
   }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
     <dialog
@@ -39,9 +44,12 @@ const Modal = ({
       <div className={styles.content}>
         <div className={styles.header}>
           <h2 className={styles.title}>{title}</h2>
-          <IconButton onClick={onClose} aria-label="Close" tone="danger">
-            <X size={20} />
-          </IconButton>
+          <div className={styles.headerActions}>
+            {headerActions}
+            <Button type="button" variant="ghost" onClick={onClose}>
+              {closeLabel}
+            </Button>
+          </div>
         </div>
         <div className={styles.body}>{children}</div>
       </div>

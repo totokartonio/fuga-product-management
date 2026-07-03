@@ -3,6 +3,8 @@ import { ProductCard } from "./ProductCard";
 import styles from "./ProductList.module.css";
 import { Button } from "../ui/Button/Button";
 import { ProductCardSkeleton } from "./ProductCardSkeleton/ProductCardSkeleton";
+import { EmptyState } from "../ui/EmptyState/EmptyState";
+import { ErrorState } from "../ui/ErrorState/ErrorState";
 
 type Props = {
   products: ProductResponse[];
@@ -25,6 +27,8 @@ const ProductList = ({
   onDelete,
   onEdit,
 }: Props) => {
+  const emptyMessage = "No products yet. Add your first one to get started.";
+  const errorMessage = "Couldn't load products.";
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -36,12 +40,11 @@ const ProductList = ({
         </Button>
       </div>
       {isError ? (
-        <div className={styles.state}>
-          <p>Couldn't load releases.</p>
-          <Button variant="ghost" onClick={onRetry} disabled={isFetching}>
-            {isFetching ? "Retrying…" : "Retry"}
-          </Button>
-        </div>
+        <ErrorState
+          message={errorMessage}
+          onClick={onRetry}
+          disabled={isFetching}
+        />
       ) : isLoading ? (
         <div className={styles.list}>
           {Array.from({ length: 3 }).map((_, i) => (
@@ -49,9 +52,7 @@ const ProductList = ({
           ))}
         </div>
       ) : products.length === 0 ? (
-        <div className={styles.state}>
-          <p>No releases yet. Add your first one to get started.</p>
-        </div>
+        <EmptyState message={emptyMessage} />
       ) : (
         <div className={styles.list}>
           {products.map((product) => (

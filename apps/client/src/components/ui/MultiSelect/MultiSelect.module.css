@@ -1,0 +1,106 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.control {
+  min-height: 42px;
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: text;
+}
+
+.control:focus-within,
+.control.open {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px
+    color-mix(in oklch, var(--color-primary) 20%, transparent);
+}
+
+.control.disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.chip {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.chipLabel {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.removeButton {
+  padding: 0;
+  border: none;
+}
+
+.input {
+  min-width: 140px;
+  flex: 1;
+  padding: var(--spacing-xs) 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+
+.input::placeholder {
+  color: var(--color-secondary);
+}
+
+.listbox {
+  position: absolute;
+  z-index: 10;
+  inset-inline-start: 0;
+  top: calc(100% + var(--spacing-xs));
+  width: 100%;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--spacing-xs);
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px oklch(0% 0 0 / 0.08);
+}
+
+.option {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-md);
+}
+
+.highlighted {
+  background: var(--color-background);
+}
+
+.empty {
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--color-secondary);
+  font-size: var(--font-size-sm);
+}
