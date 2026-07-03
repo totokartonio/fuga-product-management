@@ -187,6 +187,7 @@ jobs:
     if: github.event_name == 'push'
     needs: scan
     runs-on: ubuntu-latest
+    environment: production
     container: ghcr.io/railwayapp/cli:latest
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }} # project token
