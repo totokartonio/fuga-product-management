@@ -21,12 +21,15 @@ COPY apps/server ./apps/server
 # ---- runtime ----
 FROM node:22-slim AS runtime
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
-RUN corepack enable
+
 WORKDIR /app
 ENV NODE_ENV=production
 
-# copy the fully-installed workspace from build (node_modules, source, generated client)
 COPY --from=build /app ./
 
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
+
 WORKDIR /app/apps/server
-CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx src/server.ts"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && ./node_modules/.bin/tsx src/server.ts"]
