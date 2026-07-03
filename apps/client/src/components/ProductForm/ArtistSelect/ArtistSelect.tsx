@@ -1,4 +1,4 @@
-import { useEffect, useState, type KeyboardEventHandler } from "react";
+import { useState, type KeyboardEventHandler } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { getArtists } from "../../../api/artists";
@@ -39,7 +39,7 @@ const ArtistSelect = ({
   const { data: artists = [], isFetching } = useQuery({
     queryKey: ["artists", debouncedQuery],
     queryFn: () => getArtists(debouncedQuery || undefined),
-    enabled: isOpen,
+    enabled: isOpen && !disabled,
     placeholderData: keepPreviousData,
   });
 
@@ -49,14 +49,12 @@ const ArtistSelect = ({
   // item 0 is always the "Add new artist" row; artists start at index 1
   const itemCount = options.length + 1;
 
-  useEffect(() => {
-    setHighlighted((current) => Math.min(current, itemCount - 1));
-  }, [itemCount]);
+  const highlightedIndex = Math.min(highlighted, itemCount - 1);
 
   const activeOptionId =
-    highlighted === ADD_NEW_INDEX
+    highlightedIndex === ADD_NEW_INDEX
       ? ADD_NEW_OPTION_ID
-      : options[highlighted - 1]?.id;
+      : options[highlightedIndex - 1]?.id;
 
   const selectArtist = (artist: ArtistResponse) => {
     onChange([...value, { id: artist.id, name: artist.name }]);
@@ -87,20 +85,20 @@ const ArtistSelect = ({
         handleOpenChange(true);
         return;
       }
-      setHighlighted((i) => Math.min(i + 1, itemCount - 1));
+      setHighlighted(Math.min(highlightedIndex + 1, itemCount - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setHighlighted((i) => Math.max(i - 1, 0));
+      setHighlighted(Math.max(highlightedIndex - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (!isOpen) {
         handleOpenChange(true);
         return;
       }
-      if (highlighted === ADD_NEW_INDEX) {
+      if (highlightedIndex === ADD_NEW_INDEX) {
         handleAddNew();
       } else {
-        const artist = options[highlighted - 1];
+        const artist = options[highlightedIndex - 1];
         if (artist) selectArtist(artist);
       }
     } else if (e.key === "Escape") {
@@ -120,7 +118,7 @@ const ArtistSelect = ({
         role="option"
         aria-selected="false"
         className={`${styles.option} ${styles.addNew} ${
-          highlighted === ADD_NEW_INDEX ? styles.highlighted : ""
+          highlightedIndex === ADD_NEW_INDEX ? styles.highlighted : ""
         }`}
         onMouseEnter={() => setHighlighted(ADD_NEW_INDEX)}
         onMouseDown={(e) => {
@@ -146,7 +144,7 @@ const ArtistSelect = ({
               role="option"
               aria-selected="false"
               className={`${styles.option} ${
-                itemIndex === highlighted ? styles.highlighted : ""
+                itemIndex === highlightedIndex ? styles.highlighted : ""
               }`}
               onMouseEnter={() => setHighlighted(itemIndex)}
               onMouseDown={(e) => {
