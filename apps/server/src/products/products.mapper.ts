@@ -1,6 +1,5 @@
 import type { ProductResponse } from "@fuga/shared";
 import type { ArtistRole } from "@fuga/shared";
-import { minioStorage } from "../storage/minio.provider";
 
 export const mapToProductResponse = (product: {
   id: string;
@@ -18,7 +17,7 @@ export const mapToProductResponse = (product: {
     id: product.id,
     name: product.name,
     coverArtUrl: product.coverArtKey
-      ? minioStorage.getUrl(product.coverArtKey)
+      ? `/api/covers/${encodeURIComponent(product.coverArtKey)}`
       : null,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
