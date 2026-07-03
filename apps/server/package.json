@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "postinstall": "prisma generate",
+    "pretest": "node scripts/ensure-test-db.mjs && DATABASE_URL=postgresql://fuga:fuga@localhost:5432/fuga_test prisma migrate deploy",
     "test": "vitest run",
     "test:watch": "vitest"
   },

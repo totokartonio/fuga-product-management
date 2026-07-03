@@ -44,9 +44,10 @@ export const minioStorage: StorageProvider = {
   delete: async (key) => {
     await withRetry(() => client.removeObject(bucket, key));
   },
+  read: async (key) => {
+    return withRetry(() => client.getObject(bucket, key));
+  },
   getUrl: (key) => {
-    const protocol = env.MINIO_USE_SSL ? "https" : "http";
-    const host = env.MINIO_PUBLIC_ENDPOINT ?? env.MINIO_ENDPOINT;
-    return `${protocol}://${host}:${env.MINIO_PORT}/${bucket}/${key}`;
+    return `/api/covers/${key}`;
   },
 };
