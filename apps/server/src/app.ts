@@ -5,6 +5,7 @@ import { artistsRouter } from "./artists/artists.routes";
 import { errorHandler } from "./middleware/errorHandler";
 import swaggerUi from "swagger-ui-express";
 import { openApiDocument } from "./openapi/openapi";
+import { coversRouter } from "./covers/covers.routes";
 
 export const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ app.get("/api/health", (_req, res) => {
 });
 app.use("/api/products", productsRouter);
 app.use("/api/artists", artistsRouter);
+app.use("/api/covers", coversRouter);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openApiDocument));
 app.get("/api/openapi.json", (_req, res) => res.json(openApiDocument));
