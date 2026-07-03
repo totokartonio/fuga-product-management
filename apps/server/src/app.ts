@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", build: "DEPLOY_BRANCH_MINIO_FIX_2026_07_03" });
 });
 app.use("/api/products", productsRouter);
 app.use("/api/artists", artistsRouter);
