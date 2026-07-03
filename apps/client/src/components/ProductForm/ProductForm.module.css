@@ -11,16 +11,3 @@
   cursor: pointer;
   padding: 0;
 }
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--spacing-md);
-}
-
-.addedFeaturedArtist {
-  padding: var(--spacing-sm);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}

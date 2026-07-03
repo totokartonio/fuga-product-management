@@ -1,4 +1,5 @@
 import { prisma } from "../db/client";
+import { Prisma } from "../generated/prisma/client";
 import { mapToArtistResponse } from "./artists.mapper";
 import { normalizeSearch } from "../utils/normalizeSearch";
 import { cacheAside, invalidateByPrefix } from "../cache/cache";
@@ -18,8 +19,30 @@ export const listArtists = async (search?: string) => {
   });
 };
 
+export class ArtistAlreadyExistsError extends Error {
+  constructor() {
+    super("This artist already exists");
+    this.name = "ArtistAlreadyExistsError";
+  }
+}
+
 export const createArtist = async (input: { name: string }) => {
-  const artist = await prisma.artist.create({ data: { name: input.name } });
-  await invalidateByPrefix(ARTISTS_SEARCH_PREFIX);
-  return mapToArtistResponse(artist);
+  try {
+    const artist = await prisma.artist.create({
+      data: { name: input.name },
+    });
+
+    await invalidateByPrefix(ARTISTS_SEARCH_PREFIX);
+
+    return mapToArtistResponse(artist);
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      throw new ArtistAlreadyExistsError();
+    }
+
+    throw err;
+  }
 };
